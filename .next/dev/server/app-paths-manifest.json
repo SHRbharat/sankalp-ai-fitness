@@ -1,5 +1,0 @@
-{
-  "/api/generate-diet/route": "app/api/generate-diet/route.js",
-  "/api/generate-workout/route": "app/api/generate-workout/route.js",
-  "/page": "app/page.js"
-}
