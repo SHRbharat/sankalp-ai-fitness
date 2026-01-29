@@ -1,9 +1,6 @@
-// Index mapping:
-// 0 -> name (Hindi/Sanskrit in English font)
-// 1 -> bodyPart
-// 2 -> gifUrl
+import { ExerciseData } from '../types';
 
-export const YOGA: yogaExercises = [
+const RAW_YOGA = [
   ["Tadasana","full-body","https://fitnessprogramer.com/wp-content/uploads/2021/01/Tadasana.gif"],
   ["Vrikshasana","balance","https://fitnessprogramer.com/wp-content/uploads/2021/01/Vrikshasana.gif"],
   ["Utkatasana","lower-body","https://fitnessprogramer.com/wp-content/uploads/2021/01/Utkatasana.gif"],
@@ -76,3 +73,9 @@ export const YOGA: yogaExercises = [
   
   ["Surya Namaskar Fast Flow","endurance","https://fitnessprogramer.com/wp-content/uploads/2021/01/Surya-Namaskar.gif"]
 ];
+
+export const YOGA: ExerciseData[] = RAW_YOGA.map(([name, bodyPart, gifUrl]) => ({
+  name,
+  bodyPart,
+  gifUrl
+}));

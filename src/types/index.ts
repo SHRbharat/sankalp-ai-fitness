@@ -4,6 +4,12 @@ export enum PlanType {
   DIET = 'diet'
 }
 
+export enum TrainingPreference {
+  GYM = 'gym',
+  YOGA = 'yoga',
+  HYBRID = 'hybrid'
+}
+
 export enum WorkoutGoal {
   FAT_LOSS = 'Fat loss',
   MUSCLE_GAIN = 'Muscle gain',
@@ -38,6 +44,7 @@ export interface WorkoutPlan {
     }[];
   }[];
   createdAt: string;
+  source: 'ai' | 'custom';
 }
 
 export interface DietPlan {
@@ -49,11 +56,13 @@ export interface DietPlan {
       type: string; // Breakfast, Lunch, Snack, Dinner
       name: string;
       ingredients: string[];
+      recipe?: string;
       calories: string;
       notes: string;
     }[];
   }[];
   createdAt: string;
+  source: 'ai' | 'custom';
 }
 
 export interface UserProfile {
@@ -66,4 +75,6 @@ export interface UserProfile {
   constraints: string[];
   dietType: string;
   preferences: string;
+  trainingPreference: TrainingPreference;
 }
+

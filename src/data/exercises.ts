@@ -1,10 +1,12 @@
+import { ExerciseData } from '../types';
+
 
 // Index mapping:
 // 0 -> name
 // 1 -> bodyPart
 // 2 -> gifUrl
 
-export const EXERCISES: ExerciseData[] = [
+const RAW_EXERCISES = [
   [
     "One Arm Medicine Ball Slam",
     "full-body",
@@ -7061,3 +7063,9 @@ export const EXERCISES: ExerciseData[] = [
     "https://fitnessprogramer.com/wp-content/uploads/2015/07/Battle-Rope.gif"
   ]
 ];
+
+export const EXERCISES: ExerciseData[] = RAW_EXERCISES.map(([name, bodyPart, gifUrl]) => ({
+  name,
+  bodyPart,
+  gifUrl
+}));

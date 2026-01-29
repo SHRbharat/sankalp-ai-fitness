@@ -1,12 +1,20 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
-import { ALL_DATASETS } from "../constants";
+import { EXERCISES, YOGA, ALL_DATASETS } from "../constants";
+import { TrainingPreference } from "../types";
 
 // Corrected: Initialize with process.env.API_KEY directly
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateWorkoutPlan = async (userData: any) => {
-  const datasetNames = ALL_DATASETS.map(e => e.name).join(", ");
+  // Determine which dataset to use based on user preference
+  let availableExercises = ALL_DATASETS;
+  if (userData.trainingPreference === TrainingPreference.YOGA) {
+    availableExercises = YOGA;
+  } else if (userData.trainingPreference === TrainingPreference.GYM) {
+    availableExercises = EXERCISES;
+  }
+
+  const datasetNames = availableExercises.map(e => e.name).join(", ");
   
   const prompt = `
     Generate a highly personalized weekly workout plan for a user with the following profile:
@@ -16,8 +24,13 @@ export const generateWorkoutPlan = async (userData: any) => {
     Equipment: ${userData.equipment.join(", ")}
     Constraints: ${userData.constraints.join(", ")}
     Preferred Days: ${userData.daysPerWeek}
+    Training Preference: ${userData.trainingPreference}
     
-    CRITICAL: You MUST select exercises primarily from this list: ${datasetNames}.
+    CRITICAL INSTRUCTIONS:
+    1. You MUST select exercises ONLY from this specific list: [${datasetNames}].
+    2. Do NOT suggest any exercise or pose that is not in the list above.
+    3. If the preference is "yoga", focus purely on yoga asanas from the list.
+    4. If the preference is "gym", focus on strength/cardio from the list.
     
     Return the plan in JSON format.
   `;
@@ -63,100 +76,69 @@ export const generateWorkoutPlan = async (userData: any) => {
     }
   });
 
-  // Corrected: Ensure response.text is treated as a property and handled if undefined
   const rawJson = JSON.parse(response.text || '{}');
   
+  // Post-processing: Ensure data integrity and attach gifUrls
   rawJson.days.forEach((day: any) => {
-    day.exercises.forEach((ex: any) => {
-      const found = ALL_DATASETS.find(d => d.name.toLowerCase() === ex.name.toLowerCase());
+    day.exercises = day.exercises.map((ex: any) => {
+      // Find the exact or closest match in our local dataset
+      const found = availableExercises.find(d => 
+        d.name.toLowerCase() === ex.name.toLowerCase() || 
+        ex.name.toLowerCase().includes(d.name.toLowerCase())
+      );
+
       if (found) {
-        ex.gifUrl = found.gifUrl;
+        return {
+          ...ex,
+          name: found.name, // Normalize to our local name
+          gifUrl: found.gifUrl
+        };
       }
+      
+      // If AI hallucinated a name not in our list, we keep it but log/handle (or filter out)
+      // For now, we return as is but gifUrl will be missing
+      return ex;
     });
   });
 
   return rawJson;
 };
+
 
 export interface CustomDayInput {
   dayName: string;
   exerciseNames: string[];
 }
 
-export const generateDetailsForCustomExercises = async (userData: any, days: CustomDayInput[]) => {
-  const dayDetailsPrompt = days.map(d => `${d.dayName}: ${d.exerciseNames.join(", ")}`).join("\n");
+export const generateDetailsForCustomExercises = async (userData: any, days: CustomDayInput[], planName?: string) => {
+  // We no longer use AI for this. We directly format the input into the plan structure.
+  // We attach default values since the user only selects names.
   
-  const prompt = `
-    The user has manually selected the following exercises for a 7-day schedule:
-    ${dayDetailsPrompt}
+  const formattedDays = days.map(day => ({
+    dayName: day.dayName,
+    focus: day.exerciseNames.length > 0 ? "Custom Workout" : "Rest Day",
+    exercises: day.exerciseNames.map(name => {
+      const found = ALL_DATASETS.find(d => 
+        d.name.toLowerCase() === name.toLowerCase()
+      );
+      
+      return {
+        name: found?.name || name,
+        sets: "3",
+        reps: "12",
+        rest: "60s",
+        tips: "Focus on form and controlled movements.",
+        gifUrl: found?.gifUrl
+      };
+    })
+  }));
 
-    Based on their profile:
-    Age: ${userData.age}
-    Goal: ${userData.goals.join(", ")}
-    Level: ${userData.fitnessLevel}
-    
-    For EVERY exercise on EVERY day, assign appropriate sets, reps (or duration), rest times, and pro-tips. 
-    Ensure the progression and volume across the 7 days are logical for their fitness level.
-    If a day has no exercises, mark it as a "Rest Day" or "Recovery Day" in the focus field with an empty exercises array.
-    
-    Return the full 7-day plan in JSON format.
-  `;
-
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          title: { type: Type.STRING },
-          days: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                dayName: { type: Type.STRING },
-                focus: { type: Type.STRING },
-                exercises: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      name: { type: Type.STRING },
-                      sets: { type: Type.STRING },
-                      reps: { type: Type.STRING },
-                      duration: { type: Type.STRING },
-                      rest: { type: Type.STRING },
-                      tips: { type: Type.STRING },
-                    },
-                    required: ["name", "rest", "tips"]
-                  }
-                }
-              },
-              required: ["dayName", "focus", "exercises"]
-            }
-          }
-        },
-        required: ["title", "days"]
-      }
-    }
-  });
-
-  // Corrected: Handle potentially undefined response.text
-  const rawJson = JSON.parse(response.text || '{}');
-  
-  rawJson.days.forEach((day: any) => {
-    day.exercises.forEach((ex: any) => {
-      const found = ALL_DATASETS.find(d => d.name.toLowerCase() === ex.name.toLowerCase());
-      if (found) {
-        ex.gifUrl = found.gifUrl;
-      }
-    });
-  });
-
-  return rawJson;
+  return {
+    title: planName || "My Custom Weekly Plan",
+    days: formattedDays
+  };
 };
+
 
 export const generateDietPlan = async (userData: any) => {
   const prompt = `
@@ -170,6 +152,7 @@ export const generateDietPlan = async (userData: any) => {
     Budget: ${userData.budgetLevel || 'Medium'}
 
     Provide Indian-focused options where applicable but stay flexible.
+    For EACH meal, you MUST provide a detailed "recipe" field which includes step-by-step preparation instructions.
     Return the plan in JSON format.
   `;
 
@@ -196,10 +179,11 @@ export const generateDietPlan = async (userData: any) => {
                       type: { type: Type.STRING },
                       name: { type: Type.STRING },
                       ingredients: { type: Type.ARRAY, items: { type: Type.STRING } },
+                      recipe: { type: Type.STRING },
                       calories: { type: Type.STRING },
                       notes: { type: Type.STRING },
                     },
-                    required: ["type", "name", "ingredients", "calories"]
+                    required: ["type", "name", "ingredients", "recipe", "calories"]
                   }
                 }
               },

@@ -4,6 +4,7 @@ import { ALL_DATASETS } from '../constants';
 const DAYS = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'];
 
 export const useCustomBuilder = () => {
+  const [planName, setPlanName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeDayIdx, setActiveDayIdx] = useState(0);
   const [customSchedule, setCustomSchedule] = useState<Record<string, string[]>>({
@@ -13,11 +14,14 @@ export const useCustomBuilder = () => {
   const activeDayName = DAYS[activeDayIdx];
 
   const filteredExercises = useMemo(() => {
-    if (!searchTerm) return ALL_DATASETS.slice(0, 20);
+    // Note: We don't slice here anymore to ensure "every exercise" is available, 
+    // but we still filter by search term.
+    const term = searchTerm.toLowerCase();
+    if (!term) return ALL_DATASETS;
     return ALL_DATASETS.filter(ex => 
-      ex.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      ex.bodyPart.toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 30);
+      ex.name.toLowerCase().includes(term) || 
+      ex.bodyPart.toLowerCase().includes(term)
+    );
   }, [searchTerm]);
 
   const toggleExerciseForActiveDay = (name: string) => {
@@ -31,6 +35,7 @@ export const useCustomBuilder = () => {
   };
 
   const resetSchedule = () => {
+    setPlanName('');
     setCustomSchedule({
       'Day 1': [], 'Day 2': [], 'Day 3': [], 'Day 4': [], 'Day 5': [], 'Day 6': [], 'Day 7': []
     });
@@ -40,6 +45,8 @@ export const useCustomBuilder = () => {
   const activeDaysCount = (Object.values(customSchedule) as string[][]).filter(d => d.length > 0).length;
 
   return {
+    planName,
+    setPlanName,
     searchTerm,
     setSearchTerm,
     activeDayIdx,

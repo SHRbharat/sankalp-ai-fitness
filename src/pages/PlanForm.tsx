@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronLeft, CheckCircle2, ArrowRight } from 'lucide-react';
-import { PlanType, WorkoutGoal } from '../types';
+import { PlanType, WorkoutGoal, TrainingPreference } from '../types';
 
 interface PlanFormProps {
   formType: PlanType;
@@ -62,6 +62,28 @@ const PlanForm: React.FC<PlanFormProps> = ({
                   />
                 </div>
                 <div>
+                  <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 block">Training Style</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: 'Gym/Home', value: TrainingPreference.GYM },
+                      { label: 'Yoga Only', value: TrainingPreference.YOGA },
+                      { label: 'Hybrid', value: TrainingPreference.HYBRID },
+                    ].map(pref => (
+                      <button 
+                        key={pref.value}
+                        onClick={() => setFormData({
+                          ...formData, 
+                          trainingPreference: pref.value,
+                          equipment: pref.value === TrainingPreference.YOGA ? [] : formData.equipment
+                        })}
+                        className={`px-3 py-4 rounded-2xl border-2 transition-all flex flex-col items-center justify-center space-y-1 text-center ${formData.trainingPreference === pref.value ? 'bg-neutral-900 border-neutral-900 text-white shadow-md' : 'bg-white border-neutral-100 text-neutral-500'}`}
+                      >
+                        <span className="text-sm font-bold">{pref.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
                   <label className="text-xs font-bold text-neutral-400 uppercase tracking-widest mb-2 block">Fitness Level</label>
                   <div className="flex flex-wrap gap-3">
                     {['Beginner', 'Intermediate', 'Advanced'].map(level => (
@@ -78,6 +100,7 @@ const PlanForm: React.FC<PlanFormProps> = ({
               </div>
             </div>
           )}
+
 
           {step === 2 && (
             <div className="animate-slide-in">
@@ -97,7 +120,8 @@ const PlanForm: React.FC<PlanFormProps> = ({
             </div>
           )}
 
-          {step === 3 && (
+          {/* Step 3: Equipment (Only for GYM/HYBRID) */}
+          {step === 3 && formData.trainingPreference !== TrainingPreference.YOGA && (
             <div className="animate-slide-in">
               <h2 className="text-2xl font-bold mb-6">Equipment Availability</h2>
               <div className="grid grid-cols-1 gap-3">
@@ -115,7 +139,8 @@ const PlanForm: React.FC<PlanFormProps> = ({
             </div>
           )}
 
-          {step === 4 && (
+          {/* Physical Constraints (Step 3 for Yoga, Step 4 for others) */}
+          {((step === 3 && formData.trainingPreference === TrainingPreference.YOGA) || (step === 4 && formData.trainingPreference !== TrainingPreference.YOGA)) && (
             <div className="animate-slide-in">
               <h2 className="text-2xl font-bold mb-6">Physical Constraints</h2>
               <div className="grid grid-cols-2 gap-3">
@@ -132,7 +157,8 @@ const PlanForm: React.FC<PlanFormProps> = ({
             </div>
           )}
 
-          {step === 5 && (
+          {/* Preferences (Step 4 for Yoga, Step 5 for others) */}
+          {((step === 4 && formData.trainingPreference === TrainingPreference.YOGA) || (step === 5 && formData.trainingPreference !== TrainingPreference.YOGA)) && (
             <div className="animate-slide-in">
               <h2 className="text-2xl font-bold mb-6">Preferences</h2>
               <div className="space-y-6">
@@ -256,25 +282,25 @@ const PlanForm: React.FC<PlanFormProps> = ({
         </>
       )}
 
-      {step < totalSteps && (
-        <div className="mt-10 flex space-x-4">
-          {step > 1 && (
-            <button 
-              onClick={() => setStep(step - 1)}
-              className="flex-1 py-5 rounded-[2rem] border-2 border-neutral-100 font-bold text-neutral-400"
-            >
-              Back
-            </button>
-          )}
+      <div className="mt-10 flex space-x-4">
+        {step > 1 && (
+          <button 
+            onClick={() => setStep(step - 1)}
+            className={`${step === totalSteps ? 'w-full' : 'flex-1'} py-5 rounded-[2rem] border-2 border-neutral-100 font-bold text-neutral-400`}
+          >
+            Back
+          </button>
+        )}
+        {step < totalSteps && (
           <button 
             onClick={() => setStep(step + 1)}
-            className="flex-[2] bg-neutral-900 text-white py-5 rounded-[2rem] font-bold flex items-center justify-center space-x-2"
+            className={`${step === 1 ? 'w-full' : 'flex-[2]'} bg-neutral-900 text-white py-5 rounded-[2rem] font-bold flex items-center justify-center space-x-2`}
           >
             <span>Continue</span>
             <ArrowRight size={20} />
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

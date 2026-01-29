@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlanType } from './types';
+import { PlanType, TrainingPreference } from './types';
 import { useAuth } from './hooks/useAuth';
 import { useFitnessPlan } from './hooks/useFitnessPlan';
 import { useCustomBuilder } from './hooks/useCustomBuilder';
@@ -37,6 +37,8 @@ const App: React.FC = () => {
     filteredExercises,
     toggleExerciseForActiveDay,
     resetSchedule,
+    planName,
+    setPlanName,
     totalSelectedCount,
     activeDaysCount,
     DAYS
@@ -61,7 +63,7 @@ const App: React.FC = () => {
   };
 
   const onCustomFinalize = async () => {
-    const plan = await handleCustomFinalize(formData, customSchedule);
+    const plan = await handleCustomFinalize(formData, customSchedule, planName);
     if (plan) {
       resetSchedule();
       setView('plan-view');
@@ -100,7 +102,11 @@ const App: React.FC = () => {
         <PlanForm 
           formType={formType}
           step={step}
-          totalSteps={formType === PlanType.WORKOUT ? 5 : 4}
+          totalSteps={
+            formType === PlanType.WORKOUT 
+              ? (formData.trainingPreference === TrainingPreference.YOGA ? 4 : 5) 
+              : 4
+          }
           formData={formData}
           setFormData={setFormData}
           setStep={setStep}
@@ -144,6 +150,8 @@ const App: React.FC = () => {
           activeDaysCount={activeDaysCount}
           resetSchedule={resetSchedule}
           handleCustomFinalize={onCustomFinalize}
+          planName={planName}
+          setPlanName={setPlanName}
         />
       )}
     </Layout>

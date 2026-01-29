@@ -12,12 +12,13 @@ export const useFitnessPlan = (isAuth: boolean) => {
     if (saved) setHistory(JSON.parse(saved));
   }, []);
 
-  const saveToHistory = (plan: any, type: PlanType) => {
+  const saveToHistory = (plan: any, type: PlanType, source: 'ai' | 'custom') => {
     const newPlan = { 
       ...plan, 
       id: Date.now().toString(), 
       createdAt: new Date().toLocaleDateString(), 
-      type 
+      type,
+      source
     };
     const updatedHistory = [newPlan, ...history];
     setHistory(updatedHistory);
@@ -45,7 +46,7 @@ export const useFitnessPlan = (isAuth: boolean) => {
       } else {
         result = await generateDietPlan(formData);
       }
-      const saved = saveToHistory(result, formType);
+      const saved = saveToHistory(result, formType, 'ai');
       setCurrentPlan(saved);
       return saved;
     } catch (error) {
@@ -56,10 +57,10 @@ export const useFitnessPlan = (isAuth: boolean) => {
     }
   };
 
-  const handleCustomFinalize = async (formData: any, customSchedule: Record<string, string[]>) => {
+  const handleCustomFinalize = async (formData: any, customSchedule: Record<string, string[]>, planName?: string) => {
     const dayInputs: CustomDayInput[] = (Object.entries(customSchedule) as [string, string[]][]).map(([dayName, exerciseNames]) => ({
       dayName,
-      exerciseNames: exerciseNames as string[]
+      exerciseNames
     }));
 
     if (dayInputs.every(d => d.exerciseNames.length === 0)) {
@@ -69,8 +70,8 @@ export const useFitnessPlan = (isAuth: boolean) => {
 
     setIsLoading(true);
     try {
-      const result = await generateDetailsForCustomExercises(formData, dayInputs);
-      const saved = saveToHistory(result, PlanType.WORKOUT);
+      const result = await generateDetailsForCustomExercises(formData, dayInputs, planName);
+      const saved = saveToHistory(result, PlanType.WORKOUT, 'custom');
       setCurrentPlan(saved);
       return saved;
     } catch (error) {
